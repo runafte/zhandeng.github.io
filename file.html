@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>元旦</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            overflow: hidden;
+            background-color: #000; /* 黑色背景更凸显烟花 */
+            height: 100vh;
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        .tip {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 16px;
+            text-align: center;
+            z-index: 2;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="tip">点一下试试</div>
+    <canvas id="fireworks"></canvas>
+
+    <script>
+        // 获取画布和上下文
+        const canvas = document.getElementById('fireworks');
+        const ctx = canvas.getContext('2d');
+        
+        // 适配屏幕尺寸
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // 随机数工具函数
+        function random(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        // 颜色工具函数（随机烟花颜色）
+        function randomColor() {
+            const colors = [
+                'rgba(255,0,0,0.8)', // 红
+                'rgba(0,255,0,0.8)', // 绿
+                'rgba(0,0,255,0.8)', // 蓝
+                'rgba(255,255,0,0.8)', // 黄
+                'rgba(255,0,255,0.8)', // 紫
+                'rgba(0,255,255,0.8)', // 青
+                'rgba(255,255,255,0.8)' // 白
+            ];
+            return colors[Math.floor(random(0, colors.length))];
+        }
+
+        // 粒子类（烟花粒子）
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.speed = random(1, 5); // 粒子速度
+                this.angle = random(0, Math.PI * 2); // 粒子发射角度
+                this.gravity = 0.02; // 重力
+                this.vx = Math.cos(this.angle) * this.speed; // x轴速度
+                this.vy = Math.sin(this.angle) * this.speed; // y轴速度
+                this.color = randomColor(); // 粒子颜色
+                this.alpha = 1; // 透明度
+                this.decay = random(0.005, 0.01); // 透明度衰减速度
+            }
+
+            // 更新粒子状态
+            update() {
+                // 加入重力效果（y轴速度逐渐增加，模拟下落）
+                this.vy += this.gravity;
+                this.x += this.vx;
+                this.y += this.vy;
+                // 透明度衰减
+                this.alpha -= this.decay;
+            }
+
+            // 绘制粒子
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2); // 粒子大小为2px
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // 存储所有粒子
+        let particles = [];
+
+        // 创建烟花（点击/触摸时触发）
+        function createFirework(x, y) {
+            // 生成100-200个粒子
+            const particleCount = Math.floor(random(100, 200));
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle(x, y));
+            }
+        }
+
+        // 动画循环
+        function animate() {
+            // 半透明黑色背景，实现拖影效果
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 更新并绘制所有粒子
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.draw();
+
+                // 移除透明度为0的粒子，优化性能
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // 绑定点击/触摸事件
+        // 点击事件（适配PC/移动端普通点击）
+        canvas.addEventListener('click', (e) => {
+            createFirework(e.clientX, e.clientY);
+        });
+
+        // 触摸事件（适配移动端触摸）
+        canvas.addEventListener('touchstart', (e) => {
+            // 阻止默认行为（避免页面滚动）
+            e.preventDefault();
+            const touch = e.touches[0];
+            createFirework(touch.clientX, touch.clientY);
+        });
+
+        // 启动动画
+        animate();
+    </script>
+</body>
+</html>
